@@ -13,7 +13,7 @@ wandb.login()
 
 # 1. Tải mô hình với Unsloth
 model, tokenizer = FastLanguageModel.from_pretrained(
-    model_name = "vilm/vinallama-2.7b-chat",
+    model_name = Config.model_name,
     max_seq_length = Config.max_seq_length,
     dtype = None,
     load_in_4bit = True, 
