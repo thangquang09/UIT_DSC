@@ -1,12 +1,21 @@
 class Config:
-    wandb_api_key=""
+    # Data
     valid_size=0.2
     random_state=42
-    model_name="vilm/vinallama-2.7b-chat"
     context_column="context"
     prompt_column="prompt"
     response_column="response"
     label_column="label"
-    max_seq_length=1536
     fine_tune_prompt_column="prompt_text"
+    # model
+    model_name="vilm/vinallama-2.7b-chat"
+    max_seq_length=1536
     output_dir="outputs"
+    # training
+    epochs=3
+    batch_size=2
+    gradient_accumulation_steps=4
+    learning_rate = 2e-4
+    
+    # utils
+    wandb_api_key=""
