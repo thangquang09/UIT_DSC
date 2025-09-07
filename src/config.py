@@ -2,7 +2,7 @@ class Config:
     wandb_api_key=""
     valid_size=0.2
     random_state=42
-    model_name="vilm/vinallama-7b-chat"
+    model_name="vilm/vinallama-2.7b-chat"
     context_column="context"
     prompt_column="prompt"
     response_column="response"

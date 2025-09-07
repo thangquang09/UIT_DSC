@@ -11,35 +11,26 @@ import wandb
 # os.environ['WANDB_API_KEY'] = Config.wandb_api_key
 wandb.login()
 
-# 1. Tải mô hình với Unsloth và tắt chat template checking
+# 1. Tải mô hình với Unsloth
 model, tokenizer = FastLanguageModel.from_pretrained(
     model_name = Config.model_name,
     max_seq_length = Config.max_seq_length,
     dtype = None,
-    load_in_4bit = True,
-    trust_remote_code = True,  # Add this
-    use_cache = False,  # Add this
+    load_in_4bit = True, 
 )
 
-# 2. Fix chat template cho tokenizer ngay sau khi load
-chat_template = """{% for message in messages %}{% if message['role'] == 'system' %}<|im_start|>system
-{{ message['content'] }}
-<|im_end|>
-{% elif message['role'] == 'user' %}<|im_start|>user
-{{ message['content'] }}<|im_end|>
-{% elif message['role'] == 'assistant' %}<|im_start|>assistant
-{{ message['content'] }}<|im_end|>
-{% endif %}{% endfor %}{% if add_generation_prompt %}<|im_start|>assistant
-{% endif %}"""
+# # 2. Fix chat template cho tokenizer
+# chat_template = """{% for message in messages %}{% if message['role'] == 'system' %}<|im_start|>system
+# {{ message['content'] }}
+# <|im_end|>
+# {% elif message['role'] == 'user' %}<|im_start|>user
+# {{ message['content'] }}<|im_end|>
+# {% elif message['role'] == 'assistant' %}<|im_start|>assistant
+# {{ message['content'] }}<|im_end|>
+# {% endif %}{% endfor %}{% if add_generation_prompt %}<|im_start|>assistant
+# {% endif %}"""
 
-# Force set chat template
-tokenizer.chat_template = chat_template
-
-# Also set these attributes to avoid issues
-if not hasattr(tokenizer, 'eos_token') or tokenizer.eos_token is None:
-    tokenizer.eos_token = "<|im_end|>"
-if not hasattr(tokenizer, 'pad_token') or tokenizer.pad_token is None:
-    tokenizer.pad_token = tokenizer.eos_token
+# tokenizer.chat_template = chat_template
 
 # 3. Chuẩn bị mô hình cho PEFT (LoRA)
 model = FastLanguageModel.get_peft_model(
@@ -97,7 +88,7 @@ def get_trainer(train_dataset, val_dataset):
             ddp_find_unused_parameters = False,
             # Wandb configuration
             report_to="wandb",
-            run_name="vinallama-7b-chat-finetuning",
+            run_name="vinallama-2.7b-chat-finetuning",
             logging_first_step=True,
         ),
         packing = False,
