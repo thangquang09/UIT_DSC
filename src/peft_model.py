@@ -10,14 +10,14 @@ from src.config import Config
 model, tokenizer = FastLanguageModel.from_pretrained(
     model_name = "vilm/vinallama-2.7b-chat",
     max_seq_length = Config.max_seq_length,
-    dtype = torch.bfloat16,
+    dtype = None,
     load_in_4bit = True, 
 )
 
 # 2. Chuẩn bị mô hình cho PEFT (LoRA)
 model = FastLanguageModel.get_peft_model(
     model,
-    r = 16, # Rank của LoRA
+    r = 16,
     target_modules = ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
     lora_alpha = 16,
     lora_dropout = 0,
@@ -36,10 +36,13 @@ def get_trainer(train_dataset, val_dataset):
         eval_dataset = val_dataset,
         dataset_text_field = Config.fine_tune_prompt_column, # Tên cột chứa prompt hoàn chỉnh của bạn
         max_seq_length = Config.max_seq_length, # Đảm bảo cả model và trainer đều dùng chung giá trị này
-        args = TrainingArguments(
-            per_device_train_batch_size = 2,
-            gradient_accumulation_steps = 4,
-            warmup_steps = 5,
+            args = TrainingArguments(
+            # --- Các tham số quan trọng cho đa GPU ---
+            per_device_train_batch_size = 2,  # Batch size TRÊN MỖI GPU
+            per_device_eval_batch_size = 2,   # Batch size TRÊN MỖI GPU
+            gradient_accumulation_steps = 4,  # Hiệu quả trên cả 2 GPU
+
+            # --- Các tham số khác ---
             num_train_epochs = 3,
             learning_rate = 2e-4,
             fp16 = not torch.cuda.is_bf16_supported(),
@@ -50,7 +53,10 @@ def get_trainer(train_dataset, val_dataset):
             lr_scheduler_type = "linear",
             seed = 42,
             output_dir = "outputs",
+            # Thêm tham số này để xử lý các vấn đề tiềm ẩn với DDP và gradient checkpointing
+            ddp_find_unused_parameters = False,
         ),
+        packing = False, # Packing có thể phức tạp hơn trong DDP, nên tắt đi để bắt đầu
     )
     
     return trainer
