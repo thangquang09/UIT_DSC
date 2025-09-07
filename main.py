@@ -23,7 +23,9 @@ def main():
     
     trainer = get_trainer(train_dataset, val_dataset)
     trainer.train()
-    
+    # Save the model after training
+    trainer.save_model(Config.output_dir)
+    print(f"Model saved to {Config.output_dir}")
     
     # sample_dict = df.iloc[0].to_dict()
     # prompt = create_finetuning_prompt(sample_dict)

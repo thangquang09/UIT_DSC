@@ -9,3 +9,4 @@ class Config:
     label_column="label"
     max_seq_length=1536
     fine_tune_prompt_column="prompt_text"
+    output_dir="outputs"
