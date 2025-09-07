@@ -5,6 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
+    "accelerate>=1.10.1",
     "bitsandbytes>=0.47.0",
     "datasets>=4.0.0",
     "einops>=0.8.1",
@@ -20,4 +21,7 @@ dependencies = [
     "spacy>=3.8.7",
     "torch>=2.8.0",
     "transformers>=4.56.1",
+    "trl>=0.22.2",
+    "unsloth>=2025.7.2",
+    "xformers>=0.0.32.post2",
 ]

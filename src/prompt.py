@@ -60,3 +60,13 @@ def create_finetuning_prompt(sample):
     )
     
     return final_prompt
+
+def apply_prompt_template(row):
+    # Hàm create_finetuning_prompt nhận vào một dictionary
+    sample = {
+        'context': row['context'],
+        'prompt': row['prompt'],
+        'response': row['response'], # Bạn cần có cột 'response' trong df
+        'label': row['label']
+    }
+    return create_finetuning_prompt(sample)
