@@ -5,6 +5,11 @@ from trl import SFTTrainer
 from datasets import Dataset # Giả sử bạn dùng Dataset của Hugging Face
 import pandas as pd
 from src.config import Config
+import os
+import wandb
+
+# os.environ['WANDB_API_KEY'] = Config.wandb_api_key
+wandb.login()
 
 # 1. Tải mô hình với Unsloth
 model, tokenizer = FastLanguageModel.from_pretrained(
@@ -44,22 +49,19 @@ def formatting_func(examples):
     
     
 # 3. Sử dụng SFTTrainer như bình thường
-def get_trainer(train_dataset, val_dataset):
 
+def get_trainer(train_dataset, val_dataset):
     trainer = SFTTrainer(
         model = model,
         tokenizer = tokenizer,
         train_dataset = train_dataset,
         eval_dataset = val_dataset,
         formatting_func = formatting_func,
-        max_seq_length = Config.max_seq_length, # Đảm bảo cả model và trainer đều dùng chung giá trị này
-            args = TrainingArguments(
-            # --- Các tham số quan trọng cho đa GPU ---
-            per_device_train_batch_size = 2,  # Batch size TRÊN MỖI GPU
-            per_device_eval_batch_size = 2,   # Batch size TRÊN MỖI GPU
-            gradient_accumulation_steps = 4,  # Hiệu quả trên cả 2 GPU
-
-            # --- Các tham số khác ---
+        max_seq_length = Config.max_seq_length,
+        args = TrainingArguments(
+            per_device_train_batch_size = 2,
+            per_device_eval_batch_size = 2,
+            gradient_accumulation_steps = 4,
             num_train_epochs = 3,
             learning_rate = 2e-4,
             fp16 = not torch.cuda.is_bf16_supported(),
@@ -70,10 +72,13 @@ def get_trainer(train_dataset, val_dataset):
             lr_scheduler_type = "linear",
             seed = 42,
             output_dir = "outputs",
-            # Thêm tham số này để xử lý các vấn đề tiềm ẩn với DDP và gradient checkpointing
             ddp_find_unused_parameters = False,
+            # Wandb configuration
+            report_to="wandb",
+            run_name="vinallama-2.7b-chat-finetuning",
+            logging_first_step=True,
         ),
-        packing = False, # Packing có thể phức tạp hơn trong DDP, nên tắt đi để bắt đầu
+        packing = False,
     )
     
     return trainer
