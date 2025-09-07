@@ -26,6 +26,23 @@ model = FastLanguageModel.get_peft_model(
     random_state = 42,
 )
 
+def formatting_func(examples):
+    """
+    Format the dataset for training.
+    This function should return a list of formatted text for each example.
+    """
+    # Handle batch processing - examples is a dict with lists
+    if Config.fine_tune_prompt_column in examples:
+        texts = examples[Config.fine_tune_prompt_column]
+        # Ensure we return a list of strings
+        if isinstance(texts, list):
+            return texts
+        else:
+            return [texts]  # Single example case
+    else:
+        raise ValueError(f"Column {Config.fine_tune_prompt_column} not found in the dataset.")
+    
+    
 # 3. Sử dụng SFTTrainer như bình thường
 def get_trainer(train_dataset, val_dataset):
 
@@ -34,7 +51,7 @@ def get_trainer(train_dataset, val_dataset):
         tokenizer = tokenizer,
         train_dataset = train_dataset,
         eval_dataset = val_dataset,
-        dataset_text_field = Config.fine_tune_prompt_column, # Tên cột chứa prompt hoàn chỉnh của bạn
+        formatting_func = formatting_func,
         max_seq_length = Config.max_seq_length, # Đảm bảo cả model và trainer đều dùng chung giá trị này
             args = TrainingArguments(
             # --- Các tham số quan trọng cho đa GPU ---
