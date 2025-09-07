@@ -19,7 +19,20 @@ model, tokenizer = FastLanguageModel.from_pretrained(
     load_in_4bit = True, 
 )
 
-# 2. Chuẩn bị mô hình cho PEFT (LoRA)
+# 2. Fix chat template cho tokenizer
+chat_template = """{% for message in messages %}{% if message['role'] == 'system' %}<|im_start|>system
+{{ message['content'] }}
+<|im_end|>
+{% elif message['role'] == 'user' %}<|im_start|>user
+{{ message['content'] }}<|im_end|>
+{% elif message['role'] == 'assistant' %}<|im_start|>assistant
+{{ message['content'] }}<|im_end|>
+{% endif %}{% endfor %}{% if add_generation_prompt %}<|im_start|>assistant
+{% endif %}"""
+
+tokenizer.chat_template = chat_template
+
+# 3. Chuẩn bị mô hình cho PEFT (LoRA)
 model = FastLanguageModel.get_peft_model(
     model,
     r = 16,
@@ -75,7 +88,7 @@ def get_trainer(train_dataset, val_dataset):
             ddp_find_unused_parameters = False,
             # Wandb configuration
             report_to="wandb",
-            run_name="vinallama-2.7b-chat-finetuning",
+            run_name="vinallama-7b-chat-finetuning",
             logging_first_step=True,
         ),
         packing = False,
