@@ -11,15 +11,17 @@ import wandb
 # os.environ['WANDB_API_KEY'] = Config.wandb_api_key
 wandb.login()
 
-# 1. Tải mô hình với Unsloth
+# 1. Tải mô hình với Unsloth và tắt chat template checking
 model, tokenizer = FastLanguageModel.from_pretrained(
     model_name = Config.model_name,
     max_seq_length = Config.max_seq_length,
     dtype = None,
-    load_in_4bit = True, 
+    load_in_4bit = True,
+    trust_remote_code = True,  # Add this
+    use_cache = False,  # Add this
 )
 
-# 2. Fix chat template cho tokenizer
+# 2. Fix chat template cho tokenizer ngay sau khi load
 chat_template = """{% for message in messages %}{% if message['role'] == 'system' %}<|im_start|>system
 {{ message['content'] }}
 <|im_end|>
@@ -30,7 +32,14 @@ chat_template = """{% for message in messages %}{% if message['role'] == 'system
 {% endif %}{% endfor %}{% if add_generation_prompt %}<|im_start|>assistant
 {% endif %}"""
 
+# Force set chat template
 tokenizer.chat_template = chat_template
+
+# Also set these attributes to avoid issues
+if not hasattr(tokenizer, 'eos_token') or tokenizer.eos_token is None:
+    tokenizer.eos_token = "<|im_end|>"
+if not hasattr(tokenizer, 'pad_token') or tokenizer.pad_token is None:
+    tokenizer.pad_token = tokenizer.eos_token
 
 # 3. Chuẩn bị mô hình cho PEFT (LoRA)
 model = FastLanguageModel.get_peft_model(
