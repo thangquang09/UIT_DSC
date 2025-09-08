@@ -8,7 +8,7 @@ class Config:
     label_column="label"
     fine_tune_prompt_column="prompt_text"
     # model
-    model_name="vilm/vinallama-2.7b-chat"
+    model_name="mistralai/Mistral-7B-v0.1"
     max_seq_length=1536
     output_dir="outputs"
     # training
