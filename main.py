@@ -1,4 +1,3 @@
-from src.prompt import apply_prompt_template
 from sklearn.model_selection import train_test_split
 import pandas as pd
 from src.config import Config
@@ -8,7 +7,6 @@ from src.peft_model import get_trainer
 
 def main():
     df = pd.read_csv("data/vihallu-train.csv")
-    df[Config.fine_tune_prompt_column] = df.apply(apply_prompt_template, axis=1)
 
     train_df, val_df = train_test_split(df, test_size=Config.valid_size, random_state=Config.random_state, stratify=df[Config.label_column])
     train_df = train_df.reset_index(drop=True)
