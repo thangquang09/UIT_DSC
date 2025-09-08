@@ -1,8 +1,10 @@
 from sklearn.model_selection import train_test_split
 import pandas as pd
+import os
 from src.config import Config
 from datasets import Dataset
 from src.peft_model import get_trainer
+from src.inference import generate
 
 
 def main():
@@ -25,17 +27,44 @@ def main():
     trainer.save_model(Config.output_dir)
     print(f"Model saved to {Config.output_dir}")
     
-    # sample_dict = df.iloc[0].to_dict()
-    # prompt = create_finetuning_prompt(sample_dict)
-    # print(prompt)
-    # print(len(prompt.split()))
-    # df['prompt'] = df.apply(create_finetuning_prompt, axis=1)
-    # max_len = df['prompt'].apply(lambda x: len(x.split())).max()
-    # min_len = df['prompt'].apply(lambda x: len(x.split())).min()
-    # avg_len = df['prompt'].apply(lambda x: len(x.split())).mean()
-    # print(f"Max length: {max_len}")
-    # print(f"Min length: {min_len}")
-    # print(f"Avg length: {avg_len}")
+    # Perform inference on train and test data
+    print("Starting inference...")
+    
+    # Create output directories
+    os.makedirs("train", exist_ok=True)
+    os.makedirs("test", exist_ok=True)
+    
+    # Load train data and perform inference
+    print("Processing train data...")
+    train_full_df = pd.read_csv("data/vihallu-train.csv")
+    for idx, row in train_full_df.iterrows():
+        sample = row.to_dict()
+        output = generate(sample)
+        
+        # Save to file with id as filename
+        with open(f"train/{row['id']}.txt", "w", encoding="utf-8") as f:
+            f.write(output)
+        
+        if (idx + 1) % 100 == 0:
+            print(f"Processed {idx + 1}/{len(train_full_df)} train samples")
+    
+    # Load test data and perform inference
+    print("Processing test data...")
+    test_df = pd.read_csv("data/vihallu-public-test.csv")
+    for idx, row in test_df.iterrows():
+        sample = row.to_dict()
+        output = generate(sample)
+        
+        # Save to file with id as filename
+        with open(f"test/{row['id']}.txt", "w", encoding="utf-8") as f:
+            f.write(output)
+        
+        if (idx + 1) % 100 == 0:
+            print(f"Processed {idx + 1}/{len(test_df)} test samples")
+    
+    print("Inference completed!")
+    print(f"Train outputs saved in 'train/' folder ({len(train_full_df)} files)")
+    print(f"Test outputs saved in 'test/' folder ({len(test_df)} files)")
 
 
 if __name__ == "__main__":

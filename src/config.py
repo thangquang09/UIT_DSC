@@ -13,7 +13,7 @@ class Config:
     output_dir="outputs"
     # training
     epochs=3
-    batch_size=2
+    batch_size=32
     gradient_accumulation_steps=4
     learning_rate = 2e-4
     
