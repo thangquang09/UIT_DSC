@@ -20,15 +20,15 @@ model, tokenizer = FastLanguageModel.from_pretrained(
     load_in_4bit=True,
 )
 
-# Define chat template for the tokenizer if not already provided
-if getattr(tokenizer, "chat_template", None) is None:
-    tokenizer.chat_template = (
-        "{%- for message in messages %}"
-        "<|im_start|>{{ message['role'] }}\n"
-        "{{ message['content'] }}<|im_end|>\n"
-        "{%- endfor %}"
-        "{%- if add_generation_prompt %}<|im_start|>assistant\n{%- endif %}"
-    )
+# # Define chat template for the tokenizer if not already provided
+# if getattr(tokenizer, "chat_template", None) is None:
+#     tokenizer.chat_template = (
+#         "{%- for message in messages %}"
+#         "<|im_start|>{{ message['role'] }}\n"
+#         "{{ message['content'] }}<|im_end|>\n"
+#         "{%- endfor %}"
+#         "{%- if add_generation_prompt %}<|im_start|>assistant\n{%- endif %}"
+#     )
 
 
 # 3. Chuẩn bị mô hình cho PEFT (LoRA)
