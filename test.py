@@ -1,9 +1,16 @@
-# from src.inference import generate
 import pandas as pd
-from src.prompt import create_inference_prompt
+from src.inference import generate
 
 df = pd.read_csv("data/vihallu-train.csv")
 
-sample = df.iloc[0].to_dict()
+sample = df.iloc[255]
 
-print(create_inference_prompt(sample))
+label = sample['label']
+sample['label'] = pd.NA
+sample = sample.to_dict()
+print(sample)
+print("Label:", label)
+
+ans = generate(sample=sample)
+
+print(ans)
