@@ -30,6 +30,7 @@ if getattr(tokenizer, "chat_template", None) is None:
         "{%- if add_generation_prompt %}<|im_start|>assistant\n{%- endif %}"
     )
 
+
 # 3. Chuẩn bị mô hình cho PEFT (LoRA)
 model = FastLanguageModel.get_peft_model(
     model,
