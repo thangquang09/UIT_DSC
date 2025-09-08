@@ -2,9 +2,10 @@ from unsloth import FastLanguageModel
 import torch
 from transformers import TrainingArguments
 from trl import SFTTrainer
-from datasets import Dataset # Giả sử bạn dùng Dataset của Hugging Face
+from datasets import Dataset  # Giả sử bạn dùng Dataset của Hugging Face
 import pandas as pd
 from src.config import Config
+from src.prompt import create_finetuning_prompt
 import os
 import wandb
 
@@ -13,24 +14,11 @@ wandb.login()
 
 # 1. Tải mô hình với Unsloth
 model, tokenizer = FastLanguageModel.from_pretrained(
-    model_name = Config.model_name,
-    max_seq_length = Config.max_seq_length,
-    dtype = None,
-    load_in_4bit = True, 
+    model_name=Config.model_name,
+    max_seq_length=Config.max_seq_length,
+    dtype=None,
+    load_in_4bit=True,
 )
-
-# # 2. Fix chat template cho tokenizer
-# chat_template = """{% for message in messages %}{% if message['role'] == 'system' %}<|im_start|>system
-# {{ message['content'] }}
-# <|im_end|>
-# {% elif message['role'] == 'user' %}<|im_start|>user
-# {{ message['content'] }}<|im_end|>
-# {% elif message['role'] == 'assistant' %}<|im_start|>assistant
-# {{ message['content'] }}<|im_end|>
-# {% endif %}{% endfor %}{% if add_generation_prompt %}<|im_start|>assistant
-# {% endif %}"""
-
-# tokenizer.chat_template = chat_template
 
 # 3. Chuẩn bị mô hình cho PEFT (LoRA)
 model = FastLanguageModel.get_peft_model(
@@ -45,20 +33,24 @@ model = FastLanguageModel.get_peft_model(
 )
 
 def formatting_func(examples):
-    """
-    Format the dataset for training.
-    This function should return a list of formatted text for each example.
-    """
-    # Handle batch processing - examples is a dict with lists
-    if Config.fine_tune_prompt_column in examples:
-        texts = examples[Config.fine_tune_prompt_column]
-        # Ensure we return a list of strings
-        if isinstance(texts, list):
-            return texts
-        else:
-            return [texts]  # Single example case
-    else:
-        raise ValueError(f"Column {Config.fine_tune_prompt_column} not found in the dataset.")
+    """Format the dataset for training using the prompt builder."""
+
+    samples = [
+        {
+            'context': c,
+            'prompt': p,
+            'response': r,
+            'label': l,
+        }
+        for c, p, r, l in zip(
+            examples[Config.context_column],
+            examples[Config.prompt_column],
+            examples[Config.response_column],
+            examples[Config.label_column],
+        )
+    ]
+
+    return [create_finetuning_prompt(sample, tokenizer) for sample in samples]
     
     
 # 3. Sử dụng SFTTrainer như bình thường
