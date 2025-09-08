@@ -2,7 +2,6 @@ from unsloth import FastLanguageModel
 import torch
 from transformers import TrainingArguments
 from trl import SFTTrainer
-from datasets import Dataset  # Giả sử bạn dùng Dataset của Hugging Face
 import pandas as pd
 from src.config import Config
 from src.prompt import create_finetuning_prompt
@@ -12,6 +11,91 @@ import wandb
 # os.environ['WANDB_API_KEY'] = Config.wandb_api_key
 wandb.login()
 
+
+def setup_chat_template(tokenizer, model_name):
+    """Automatically setup chat template based on model name if not already provided."""
+    
+    if getattr(tokenizer, "chat_template", None) is not None:
+        print(f"Chat template already exists for {model_name}")
+        return
+    
+    model_name_lower = model_name.lower()
+    
+    # Mistral models
+    if "mistral" in model_name_lower:
+        tokenizer.chat_template = (
+            "{%- for message in messages %}"
+            "{%- if message['role'] == 'user' %}"
+            "[INST] {{ message['content'] }} [/INST]"
+            "{%- elif message['role'] == 'assistant' %}"
+            " {{ message['content'] }}</s>"
+            "{%- elif message['role'] == 'system' %}"
+            "{{ message['content'] }}"
+            "{%- endif %}"
+            "{%- endfor %}"
+            "{%- if add_generation_prompt %}"
+            " "
+            "{%- endif %}"
+        )
+        print(f"Applied Mistral chat template for {model_name}")
+    
+    # Llama models  
+    elif "llama" in model_name_lower:
+        tokenizer.chat_template = (
+            "{%- for message in messages %}"
+            "{%- if message['role'] == 'system' %}"
+            "<|system|>\n{{ message['content'] }}</s>\n"
+            "{%- elif message['role'] == 'user' %}"
+            "<|user|>\n{{ message['content'] }}</s>\n"
+            "{%- elif message['role'] == 'assistant' %}"
+            "<|assistant|>\n{{ message['content'] }}</s>\n"
+            "{%- endif %}"
+            "{%- endfor %}"
+            "{%- if add_generation_prompt %}"
+            "<|assistant|>\n"
+            "{%- endif %}"
+        )
+        print(f"Applied Llama chat template for {model_name}")
+    
+    # Qwen models
+    elif "qwen" in model_name_lower:
+        tokenizer.chat_template = (
+            "{%- for message in messages %}"
+            "<|im_start|>{{ message['role'] }}\n"
+            "{{ message['content'] }}<|im_end|>\n"
+            "{%- endfor %}"
+            "{%- if add_generation_prompt %}"
+            "<|im_start|>assistant\n"
+            "{%- endif %}"
+        )
+        print(f"Applied Qwen chat template for {model_name}")
+    
+    # Vietnamese models (VinAI, etc.)
+    elif any(x in model_name_lower for x in ["vinallama", "phobert", "bartpho"]):
+        tokenizer.chat_template = (
+            "{%- for message in messages %}"
+            "<|im_start|>{{ message['role'] }}\n"
+            "{{ message['content'] }}<|im_end|>\n"
+            "{%- endfor %}"
+            "{%- if add_generation_prompt %}"
+            "<|im_start|>assistant\n"
+            "{%- endif %}"
+        )
+        print(f"Applied Vietnamese model chat template for {model_name}")
+    
+    # Default template for unknown models
+    else:
+        tokenizer.chat_template = (
+            "{%- for message in messages %}"
+            "{{ message['role'].upper() }}: {{ message['content'] }}\n"
+            "{%- endfor %}"
+            "{%- if add_generation_prompt %}"
+            "ASSISTANT: "
+            "{%- endif %}"
+        )
+        print(f"Applied default chat template for unknown model: {model_name}")
+
+
 # 1. Tải mô hình với Unsloth
 model, tokenizer = FastLanguageModel.from_pretrained(
     model_name=Config.model_name,
@@ -20,15 +104,8 @@ model, tokenizer = FastLanguageModel.from_pretrained(
     load_in_4bit=True,
 )
 
-# # Define chat template for the tokenizer if not already provided
-# if getattr(tokenizer, "chat_template", None) is None:
-#     tokenizer.chat_template = (
-#         "{%- for message in messages %}"
-#         "<|im_start|>{{ message['role'] }}\n"
-#         "{{ message['content'] }}<|im_end|>\n"
-#         "{%- endfor %}"
-#         "{%- if add_generation_prompt %}<|im_start|>assistant\n{%- endif %}"
-#     )
+# Auto-setup chat template
+setup_chat_template(tokenizer, Config.model_name)
 
 
 # 3. Chuẩn bị mô hình cho PEFT (LoRA)
@@ -51,9 +128,9 @@ def formatting_func(examples):
             'context': c,
             'prompt': p,
             'response': r,
-            'label': l,
+            'label': label,
         }
-        for c, p, r, l in zip(
+        for c, p, r, label in zip(
             examples[Config.context_column],
             examples[Config.prompt_column],
             examples[Config.response_column],
